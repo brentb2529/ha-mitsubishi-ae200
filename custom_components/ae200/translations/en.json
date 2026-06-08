@@ -3,20 +3,47 @@
     "step": {
       "user": {
         "title": "Connect to AE-200E / EW-50E",
-        "description": "Enter the IP address or hostname of your Mitsubishi AE-200E or EW-50E controller (LAN1 interface). Multiple controllers can be added as separate entries.",
+        "description": "Enter the IP address or hostname of your Mitsubishi AE-200E or EW-50E controller (LAN1 port). Multiple controllers can be added as separate entries — just add the integration again for each additional controller.",
         "data": {
           "host": "Host / IP Address"
         },
         "data_description": {
           "host": "The LAN1 IP address or hostname of the controller (e.g. 192.168.1.10)"
         }
+      },
+      "reconfigure": {
+        "title": "Update AE-200E / EW-50E address",
+        "description": "Update the IP address or hostname of this controller. Your existing entities and automations will be preserved.",
+        "data": {
+          "host": "Host / IP Address"
+        },
+        "data_description": {
+          "host": "The new LAN1 IP address or hostname of the controller (e.g. 192.168.1.20)"
+        }
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect to the controller. Check the IP address and ensure it is reachable on LAN1."
+      "cannot_connect": "Cannot connect to the controller. Check the IP address and ensure it is reachable on the LAN1 port.",
+      "invalid_host": "Invalid host or IP address. Enter a valid hostname or IPv4 address (e.g. 192.168.1.10 or ae200.local).",
+      "unknown": "An unexpected error occurred. Check the Home Assistant logs for details."
     },
     "abort": {
-      "already_configured": "This controller is already configured."
+      "already_configured": "This controller is already configured. To change its address, use Reconfigure from the integration options.",
+      "reconfigure_successful": "The controller address has been updated. The integration will reload now."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AE-200E / EW-50E options",
+        "description": "Adjust connection settings for this controller.",
+        "data": {
+          "timeout": "Connection timeout"
+        },
+        "data_description": {
+          "timeout": "How many seconds to wait for a response from the controller before marking it unreachable. Increase this on slow or congested networks (default: 10 s)."
+        }
+      }
     }
   }
 }

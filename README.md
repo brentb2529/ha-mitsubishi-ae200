@@ -3,6 +3,51 @@
 Home Assistant custom integration for Mitsubishi Electric City Multi commercial VRF systems
 via the **AE-200E** or **EW-50E** central controller's LAN1 WebSocket XML API.
 
+## Install & Setup
+
+No YAML, no API keys, no manual editing — everything is done in the Home Assistant UI.
+
+### Step 1 — Install via HACS
+
+1. Open HACS in your Home Assistant sidebar.
+2. Click **"Custom repositories"** (the three-dot menu, top-right).
+3. Paste `https://github.com/brentb2529/ha-mitsubishi-ae200` and choose **Integration**. Click **Add**.
+4. Search for **"Mitsubishi City Multi"** and click **Download**.
+5. **Restart Home Assistant** (Settings → System → Restart).
+
+### Step 2 — Add your controller
+
+1. Go to **Settings → Devices & Services**.
+2. Click **Add Integration** (bottom-right).
+3. Search for **"Mitsubishi City Multi"** and select it.
+4. Enter the **LAN1 IP address** of your AE-200E or EW-50E (e.g. `192.168.1.10`).
+   Home Assistant will connect and discover all indoor groups automatically.
+5. Click **Submit**. Climate, sensor, and binary-sensor entities appear immediately.
+
+> The LAN1 port requires no password or license key — authentication is handled at the
+> network level (put the controller on your LAN).
+
+### Adding a second controller
+
+Each controller is a separate entry. Just repeat Step 2 above for each additional
+AE-200E / EW-50E.
+
+### Changing the IP address (without losing history)
+
+If your controller's IP changes, use **Reconfigure** instead of removing and re-adding:
+
+1. Settings → Devices & Services → find your AE-200E entry.
+2. Click the three-dot menu → **Reconfigure**.
+3. Enter the new IP address. All entities and automation history are preserved.
+
+### Connection options
+
+To adjust the WebSocket timeout (default: 10 s — increase for slow networks):
+
+1. Settings → Devices & Services → find your AE-200E entry.
+2. Click **Configure** (or the three-dot menu → **Options**).
+3. Adjust **Connection timeout** (3 – 60 s) and click **Submit**.
+
 ## Supported Controllers
 
 | Model | Notes |
@@ -30,26 +75,13 @@ No extra hardware, no license key, no cloud required. Runs entirely on your LAN.
 
 ## Installation
 
-### Via HACS (recommended)
+See **[Install & Setup](#install--setup)** at the top of this document for the full
+HACS walkthrough, multi-controller setup, reconfigure, and options.
 
-1. Add this repository as a **custom repository** in HACS:
-   - Type: Integration
-   - URL: `https://github.com/bensten/ae200`
-2. Install **Mitsubishi City Multi (AE-200E / EW-50E)**.
-3. Restart Home Assistant.
+### Manual install (advanced)
 
-### Manual
-
-Copy `custom_components/ae200/` into your HA `config/custom_components/` directory and restart.
-
-## Configuration
-
-1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for **Mitsubishi City Multi**.
-3. Enter the LAN1 IP address or hostname of your controller.
-4. HA will connect, discover all groups, and create entities automatically.
-
-To add a second controller, repeat from step 1 — each controller is its own entry.
+Copy `custom_components/ae200/` into your HA `config/custom_components/` directory
+and restart. Then follow Step 2 of the Install & Setup guide.
 
 ## Entities
 

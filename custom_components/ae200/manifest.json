@@ -1,7 +1,7 @@
 {
   "domain": "ae200",
   "name": "Mitsubishi City Multi (AE-200E / EW-50E)",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "config_flow": true,
   "documentation": "https://github.com/bensten/ae200",
   "issue_tracker": "https://github.com/bensten/ae200/issues",

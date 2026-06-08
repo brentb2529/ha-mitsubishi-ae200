@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .ae200client import AE200Client, GroupInfo, GroupState
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_TIMEOUT, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ class AE200Coordinator(DataUpdateCoordinator[AE200CoordinatorData]):
     config_entry: ConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        self._client = AE200Client(entry.data[CONF_HOST])
+        timeout: int = entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+        self._client = AE200Client(entry.data[CONF_HOST], timeout=float(timeout))
         self._groups: list[GroupInfo] | None = None
 
         super().__init__(

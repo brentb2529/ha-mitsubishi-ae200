@@ -5,8 +5,16 @@ DOMAIN = "ae200"
 # Config-entry key (re-exported from HA's const for convenience within the package)
 CONF_HOST = "host"
 
+# Options keys
+CONF_TIMEOUT = "timeout"
+
 # Coordinator poll interval (seconds) — not user-configurable
 DEFAULT_SCAN_INTERVAL = 30
+
+# Connection timeout (seconds) — user-configurable via options flow
+DEFAULT_TIMEOUT = 10
+TIMEOUT_MIN = 3
+TIMEOUT_MAX = 60
 
 # AE-200E WebSocket path and subprotocol  [CONFIRMED from natevoci/ae200 + AE-200 manual p.83]
 WS_SUBPROTOCOL = "b_xmlproc"

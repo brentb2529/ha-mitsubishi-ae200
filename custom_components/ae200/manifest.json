@@ -1,0 +1,13 @@
+{
+  "domain": "ae200",
+  "name": "Mitsubishi City Multi (AE-200E / EW-50E)",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/bensten/ae200",
+  "requirements": ["websockets>=12.0"],
+  "dependencies": [],
+  "codeowners": ["@bensten"],
+  "iot_class": "local_polling",
+  "quality_scale": "bronze",
+  "integration_type": "device"
+}

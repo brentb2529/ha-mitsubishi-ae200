@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
@@ -34,7 +35,7 @@ from .entity import AE200GroupEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-# HA -> AE-200E mode translation  [CONFIRMED from natevoci/ae200]
+# HA ↔ AE-200E mode translation  [CONFIRMED from natevoci/ae200]
 _HA_TO_AE200_MODE: dict[HVACMode, str] = {
     HVACMode.HEAT: MODE_HEAT,
     HVACMode.COOL: MODE_COOL,
@@ -51,7 +52,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up climate entities from config entry."""
+    """Set up climate entities from a config entry."""
     coordinator: AE200Coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
@@ -61,7 +62,11 @@ async def async_setup_entry(
 
 
 class AE200Climate(AE200GroupEntity, ClimateEntity):
-    """Climate entity for one AE-200E control group."""
+    """Climate entity for one AE-200E control group.
+
+    Unique ID is namespaced by config-entry ID so multiple controllers
+    with identical group_ids never collide.
+    """
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = TEMP_STEP
@@ -86,9 +91,10 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
 
     def __init__(self, coordinator: AE200Coordinator, group) -> None:
         super().__init__(coordinator, group)
-        host = coordinator.config_entry.data["host"]
-        # Stable unique_id: domain + host + group_id [rename-safe]
-        self._attr_unique_id = f"ae200_{host}_{group.group_id}_climate"
+        entry_id = coordinator.config_entry.entry_id
+        # Stable unique_id: entry_id + group_id + platform suffix.
+        # entry_id is the config-entry UUID — survives host renames/IP changes.
+        self._attr_unique_id = f"{entry_id}_{group.group_id}_climate"
         self._attr_name = "Climate"
 
     # ------------------------------------------------------------------
@@ -102,7 +108,45 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
             return None
         if not s.is_on:
             return HVACMode.OFF
-        return _AE200_TO_HA_MODE.get(s.mode or "", HVACMode.AUTO)
+        ha_mode = _AE200_TO_HA_MODE.get(s.mode or "")
+        if ha_mode is None:
+            if s.mode:
+                _LOGGER.debug(
+                    "Group %s: unknown AE-200E mode %r — defaulting to AUTO",
+                    self._group_id, s.mode,
+                )
+            return HVACMode.AUTO
+        return ha_mode
+
+    @property
+    def hvac_action(self) -> HVACAction | None:
+        """Derive running/idle/off from drive + mode.
+
+        Without a direct 'is compressor active' field we derive:
+        - OFF  → HVACAction.OFF
+        - FAN  → HVACAction.FAN (circulating, no conditioning)
+        - DRY  → HVACAction.DRYING
+        - HEAT → HVACAction.HEATING (assumes active when Drive=ON)
+        - COOL → HVACAction.COOLING
+        - AUTO → HVACAction.IDLE (can't determine without runtime data)
+        This is the best approximation without a dedicated status bit.
+        """
+        s = self._state
+        if s is None:
+            return None
+        if not s.is_on:
+            return HVACAction.OFF
+        mode = s.mode or ""
+        if mode == MODE_FAN:
+            return HVACAction.FAN
+        if mode == MODE_DRY:
+            return HVACAction.DRYING
+        if mode == MODE_HEAT:
+            return HVACAction.HEATING
+        if mode == MODE_COOL:
+            return HVACAction.COOLING
+        # AUTO or unknown — return IDLE as a conservative default
+        return HVACAction.IDLE
 
     @property
     def current_temperature(self) -> float | None:
@@ -117,16 +161,34 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
     @property
     def fan_mode(self) -> str | None:
         s = self._state
-        return s.fan_speed if s else None
+        if s is None:
+            return None
+        v = s.fan_speed
+        if v not in FAN_MODES:
+            if v is not None:
+                _LOGGER.debug(
+                    "Group %s: unknown fan_speed %r — passing through as-is",
+                    self._group_id, v,
+                )
+        return v
 
     @property
     def swing_mode(self) -> str | None:
         s = self._state
-        return s.air_direction if s else None
+        if s is None:
+            return None
+        v = s.air_direction
+        if v is not None and v not in SWING_MODES:
+            _LOGGER.debug(
+                "Group %s: air_direction %r not in known swing_modes — "
+                "passing through (ASSUMED value set; please report for hardware validation)",
+                self._group_id, v,
+            )
+        return v
 
     @property
     def min_temp(self) -> float:
-        """Return mode-specific minimum setpoint from the controller, falling back to default."""
+        """Return mode-specific minimum setpoint from the controller, with fallback."""
         s = self._state
         if s is None:
             return FALLBACK_MIN_TEMP
@@ -141,7 +203,7 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
 
     @property
     def max_temp(self) -> float:
-        """Return mode-specific maximum setpoint from the controller, falling back to default."""
+        """Return mode-specific maximum setpoint from the controller, with fallback."""
         s = self._state
         if s is None:
             return FALLBACK_MAX_TEMP
@@ -159,13 +221,13 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
     # ------------------------------------------------------------------
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Set HVAC mode."""
+        """Set HVAC mode (or turn off)."""
         if hvac_mode == HVACMode.OFF:
             await self.coordinator.client.async_set(self._group_id, {"Drive": DRIVE_OFF})
         else:
             ae_mode = _HA_TO_AE200_MODE.get(hvac_mode)
             if ae_mode is None:
-                _LOGGER.warning("Unknown HVAC mode: %s", hvac_mode)
+                _LOGGER.warning("Unknown HVAC mode requested: %s", hvac_mode)
                 return
             await self.coordinator.client.async_set(
                 self._group_id,
@@ -184,21 +246,21 @@ class AE200Climate(AE200GroupEntity, ClimateEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        """Set fan mode."""
+        """Set fan speed."""
         await self.coordinator.client.async_set(
             self._group_id, {"FanSpeed": fan_mode}
         )
         await self.coordinator.async_request_refresh()
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
-        """Set swing / air direction mode."""
+        """Set air direction / vane position."""
         await self.coordinator.client.async_set(
             self._group_id, {"AirDirection": swing_mode}
         )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self) -> None:
-        """Turn on."""
+        """Turn on (preserves current mode)."""
         await self.coordinator.client.async_set(self._group_id, {"Drive": DRIVE_ON})
         await self.coordinator.async_request_refresh()
 

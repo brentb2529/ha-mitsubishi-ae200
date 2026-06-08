@@ -1,6 +1,7 @@
 {
   "name": "Mitsubishi City Multi (AE-200E / EW-50E)",
-  "filename": "ae200.zip",
   "content_in_root": false,
-  "homeassistant": "2024.1.0"
+  "homeassistant": "2024.1.0",
+  "country": [],
+  "iot_class": "Local Polling"
 }

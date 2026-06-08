@@ -64,6 +64,14 @@ STATE: dict[str, dict[str, str]] = {
 }
 STATE["2"]["FilterSign"] = "1"  # group 2 has filter sign set
 
+# Second independent state store for multi-controller tests (served on port 7779)
+_STATE_2: dict[str, dict[str, str]] = {
+    gid: copy.deepcopy(_DEFAULT_STATE) for gid in GROUPS
+}
+_STATE_2["1"]["Mode"] = "HEAT"
+_STATE_2["1"]["SetTemp"] = "21.0"
+_STATE_2["2"]["ErrorSign"] = "1"
+
 
 # ---------------------------------------------------------------------------
 # XML builders

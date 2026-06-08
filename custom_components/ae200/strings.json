@@ -3,20 +3,20 @@
     "step": {
       "user": {
         "title": "Connect to AE-200E / EW-50E",
-        "description": "Enter the IP address or hostname of your Mitsubishi AE-200E or EW-50E controller (LAN1 interface).",
+        "description": "Enter the IP address or hostname of your Mitsubishi AE-200E or EW-50E controller (LAN1 interface). Multiple controllers can be added as separate entries.",
         "data": {
           "host": "Host / IP Address"
         },
         "data_description": {
-          "host": "The LAN1 IP address of the AE-200E controller (e.g. 192.168.1.10)"
+          "host": "The LAN1 IP address or hostname of the controller (e.g. 192.168.1.10)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect to the AE-200E. Check the IP address and ensure the controller is reachable on LAN1."
+      "cannot_connect": "Cannot connect to the controller. Check the IP address and ensure it is reachable on LAN1."
     },
     "abort": {
-      "already_configured": "This AE-200E controller is already configured."
+      "already_configured": "This controller is already configured."
     }
   }
 }

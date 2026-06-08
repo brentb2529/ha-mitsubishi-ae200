@@ -1,4 +1,9 @@
-"""Config flow for AE-200E / EW-50E integration."""
+"""Config flow for AE-200E / EW-50E integration.
+
+Supports multiple instances: each controller is a separate config entry,
+uniquely identified by the lowercased host string.  Adding a second controller
+on a different host creates a second entry without conflict.
+"""
 from __future__ import annotations
 
 import logging
@@ -17,19 +22,27 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST): TextSelector(TextSelectorConfig(autocomplete="off")),
+        vol.Required(CONF_HOST): TextSelector(
+            TextSelectorConfig(autocomplete="off")
+        ),
     }
 )
 
 
 class AE200ConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for AE-200E."""
+    """Handle a config flow for AE-200E / EW-50E.
+
+    Multiple controllers are supported: each host gets its own config entry.
+    The unique_id is the lowercased host, preventing duplicate entries for
+    the exact same controller while allowing distinct controllers.
+    """
 
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Handle the initial user step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -43,9 +56,13 @@ class AE200ConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 groups = await client.async_get_groups()
             except Exception:  # noqa: BLE001
-                _LOGGER.exception("Cannot connect to AE-200E at %s", host)
+                _LOGGER.exception("Cannot connect to AE-200E / EW-50E at %s", host)
                 errors["base"] = "cannot_connect"
             else:
+                _LOGGER.debug(
+                    "Connected to %s — found %d group(s)", host, len(groups)
+                )
+                # Title is auto-generated; the user can rename the entry in the UI
                 return self.async_create_entry(
                     title=f"AE-200E ({host})",
                     data={CONF_HOST: host},

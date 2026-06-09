@@ -9,6 +9,7 @@ No reauth flow is required or registered.
 """
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
 from typing import Any
@@ -46,17 +47,49 @@ _LOGGER = logging.getLogger(__name__)
 # Validation helpers
 # ---------------------------------------------------------------------------
 
-# Matches plain hostnames, FQDNs, and IPv4 addresses (with optional :port)
-_HOST_RE = re.compile(
+# Matches strings that look like dotted-decimal IPs (to route them through
+# ipaddress validation rather than the hostname regex).  Applied to the bare
+# host after port stripping.
+_IP_LIKE_RE = re.compile(r"^\d+(\.\d+){1,3}$")
+
+# Matches plain hostnames and FQDNs (with optional :port).
+# Dotted-IP-like strings are NOT matched here — they are handled by ipaddress.
+_HOSTNAME_RE = re.compile(
     r"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?(:\d+)?$"
-    r"|"
-    r"^\d{1,3}(\.\d{1,3}){3}(:\d+)?$"
 )
 
 
 def _is_valid_host(host: str) -> bool:
-    """Return True if *host* looks like a hostname or IP (with optional port)."""
-    return bool(_HOST_RE.match(host.strip()))
+    """Return True if *host* looks like a valid hostname or IP (with optional port).
+
+    IP addresses (IPv4 and IPv6) are validated using the stdlib ipaddress module
+    so that out-of-range octets such as 999.x.x.x are properly rejected.
+    Strings that look like dotted-decimal addresses are rejected unless they pass
+    ipaddress validation.  Hostnames and FQDNs are accepted if they consist of
+    valid label characters.  An optional :port suffix is stripped before
+    validation in both cases.
+    """
+    host = host.strip()
+    if not host:
+        return False
+
+    # Strip optional :port suffix before IP/hostname checks.
+    bare = host.rsplit(":", 1)[0] if ":" in host else host
+
+    # Try strict IP validation first (rejects 999.x.x.x, etc.).
+    try:
+        ipaddress.ip_address(bare)
+        return True
+    except ValueError:
+        pass
+
+    # If the bare string looks like a dotted IP but failed validation, reject
+    # it so that 999.999.999.999 is not silently accepted as a hostname.
+    if _IP_LIKE_RE.match(bare):
+        return False
+
+    # Fall through to hostname regex for non-IP strings.
+    return bool(_HOSTNAME_RE.match(host))
 
 
 def _step_user_schema(host: str = "") -> vol.Schema:

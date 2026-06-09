@@ -248,6 +248,9 @@ async def test_config_flow_valid_host_formats_accepted(
         "",
         "   ",
         "host with spaces",
+        "999.999.999.999",  # F6: out-of-range octets must be rejected
+        "256.0.0.1",        # F6: first octet > 255
+        "192.168.1.999",    # F6: last octet > 255
     ],
 )
 async def test_config_flow_invalid_host_formats_rejected(

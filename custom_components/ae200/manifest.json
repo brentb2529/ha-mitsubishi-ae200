@@ -1,15 +1,15 @@
 {
   "domain": "ae200",
   "name": "Mitsubishi City Multi (AE-200E / EW-50E)",
-  "version": "1.2.1",
-  "config_flow": true,
-  "documentation": "https://github.com/bensten/ae200",
-  "issue_tracker": "https://github.com/bensten/ae200/issues",
-  "requirements": ["websockets>=12.0"],
-  "dependencies": [],
   "after_dependencies": ["network"],
-  "codeowners": ["@bensten"],
+  "codeowners": ["@brentb2529"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/brentb2529/ha-mitsubishi-ae200",
+  "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/brentb2529/ha-mitsubishi-ae200/issues",
   "quality_scale": "bronze",
-  "integration_type": "device"
+  "requirements": ["websockets>=12.0"],
+  "version": "1.2.2"
 }
